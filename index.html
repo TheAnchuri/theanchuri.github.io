@@ -1,1 +1,417 @@
-<B> Test </B>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>D3 Attrition Dashboard</title>
+  <script src="./src/d3.js"></script>
+  <script src="./src/d3anno.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    #filters {
+      margin-bottom: 1rem;
+    }
+
+    .filter-group {
+      display: inline-block;
+      margin-right: 1rem;
+    }
+
+    #container {
+      display: flex;
+      gap: 20px;
+      /* space between graph and text */
+      align-items: flex-start;
+    }
+
+    #commentary {
+      width: 300px;
+      height: 400px;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    svg {
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Analyze Employee Attrition</h1>
+  <div id="sceneButtons">
+    <button onclick="setScene(1)">1</button>
+    <button onclick="setScene(2)">2</button>
+    <button onclick="setScene(3)">3</button>
+  </div>
+
+  <div id="container">
+    <div id="graph"></div>
+    <div id="commentary" contenteditable="false">
+      <p id="commentText">This chart analyzes number of employees who left the organization based on their highest
+        education. </p>
+    </div>
+  </div>
+
+
+  <script>
+    // Load CSV and initialize chart
+    var empData = []
+
+
+    loadData()
+    //initGraph()
+
+    const annotationPadding = 5;
+
+
+    // Set up SVG and layout
+    //const svg = d3.select('svg');
+    var widthsvg = 600
+    var heightsvg = 400
+
+
+
+    function loadData() {
+
+      initGraph()
+      d3.csv("AttritionData.csv").then(function (rawData) { // CSV must have EmployeeNumber,JobSatisfaction,Age,Education,JobRole,Department,Gender,EmployeeCount
+        rawData.forEach(d => { d.jobSatisfaction = +d.JobSatisfaction; d.Age = +d.Age; d.EmployeeCount = +d.EmployeeCount; d.attrition = d.Attrition === 'true'; });        
+
+        empData = rawData;
+        console.log(empData)
+
+        scene1();
+      });
+
+    }
+
+    function initGraph() {
+
+
+    }
+
+    function setScene(scene) {
+
+      d3.select("#graph").select("svg").remove();
+      console.log(`Request for scene ${scene}`)
+
+
+      if (!scene || scene == 1) {
+        console.log("Scene1")
+
+        scene1()
+
+      } else if (scene == 2) {
+        console.log("Scene2")
+
+        scene2()
+
+      } else {
+        console.log("Scene3")
+        scene3()
+
+
+      }
+
+    }
+
+
+    function scene1() {
+
+
+      let data = empData
+
+
+      const aggregated = d3.rollups(data, v => v.length, d => d.Education).map(([Education, count]) => ({ Education, count }));
+
+      const svg = d3.select("#graph").append("svg")
+        .attr("width", widthsvg)
+        .attr("height", heightsvg);
+
+
+      const margin = { top: 40, right: 20, bottom: 40, left: 80 },
+        width = +svg.attr('width') - margin.left - margin.right, height = +svg.attr('height') - margin.top - margin.bottom;
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+      const x = d3.scaleBand().range([0, width]).padding(0.2);
+      const y = d3.scaleLinear().range([height, 0]);
+      const xAxis = g.append('g').attr('transform', `translate(0,${height})`);
+      const yAxis = g.append('g');
+
+      x.domain(aggregated.map(d => d.Education));
+      y.domain([0, d3.max(aggregated, d => d.count) || 1]);
+
+      const bars = g.selectAll('rect').data(aggregated, d => d.Education);
+
+      bars.enter().append('rect')
+        .merge(bars)
+        .attr('x', d => x(d.Education))
+        .attr('y', d => y(d.count))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.count))
+        .attr('fill', 'steelblue');
+      bars.exit().remove();
+
+
+      // Add count labels above each bar
+      const labels = g.selectAll('.bar-label').data(aggregated, d => d.Education);
+      labels.enter()
+        .append('text')
+        .attr('class', 'bar-label')
+        .merge(labels)
+        .attr('x', d => x(d.Education) + x.bandwidth() / 2)
+        .attr('y', d => y(d.count) - 5) // 5 pixels above the top of the bar
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#222')
+        .attr('font-size', '12px')
+        .text(d => d.count);
+      labels.exit().remove();
+
+
+
+      const maxEntry = aggregated.reduce((a, b) => b.count > a.count ? b : a, aggregated[0]);
+      const maxX = x(maxEntry.Education);// + x.bandwidth() / 2; // center of bar
+      const maxY = y(maxEntry.count) - 5
+
+      console.log(maxEntry)
+      console.log(maxX)
+      console.log(maxY)
+
+      const annotations = [
+        {
+          note: {
+            label: `Highest attrition in this education category`,
+            wrap: 400
+          },
+          x: maxX,
+          y: maxY,
+          dx: 0,   // horizontal offset for annotation note
+          dy: -3   // vertical offset for annotation note
+        }
+      ];
+
+      g.selectAll('.annotation-group').remove();
+      const makeAnn = d3.annotation()
+        .type(d3.annotationLabel)
+        .notePadding(0)
+        //        .annotations([{ note:{title:'Highest',label:"Highest attrition rate for this education level"}, x:x(maxEntry.Education)+x.bandwidth()/2, y:y(maxEntry.count), dy:-30, dx:20, type:d3.annotationCalloutCircle, subject:{radius:10}}]);
+        .annotations(annotations)
+
+      g.append('g').attr('class', 'annotation-group').call(makeAnn);
+
+      xAxis.call(d3.axisBottom(x));
+      yAxis.call(d3.axisLeft(y));
+
+
+      d3.select('#commentText').text('This bar chart analyzes number of employees who left the organization based on their highest education.');
+
+
+    }
+
+
+    function scene2() {
+      // read filter values (if filters exist)
+      let data = empData
+      // Aggregate data by Education and count attrition points
+      let  aggregated = d3.rollups(data, v => v.length, d => d.WorkLifeBalance).map(([WorkLifeBalance, count]) => ({ WorkLifeBalance, count }));
+      console.log(aggregated)
+
+      const customOrder = ["Bad", "Good", "Better", "Best"];
+
+      aggregated = aggregated.sort((a, b) => {
+        return customOrder.indexOf(a.WorkLifeBalance) - customOrder.indexOf(b.WorkLifeBalance);
+      });
+console.log(aggregated)
+
+
+
+      const svg = d3.select("#graph").append("svg")
+        .attr("width", widthsvg)
+        .attr("height", heightsvg);
+
+      const margin = { top: 40, right: 20, bottom: 40, left: 80 },
+        width = +svg.attr('width') - margin.left - margin.right, height = +svg.attr('height') - margin.top - margin.bottom;
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+      const x = d3.scaleBand().range([0, width]).padding(0.2);
+      const y = d3.scaleLinear().range([height, 0]);
+      const xAxis = g.append('g').attr('transform', `translate(0,${height})`);
+      const yAxis = g.append('g');
+
+      x.domain(aggregated.map(d => d.WorkLifeBalance));
+      y.domain([0, d3.max(aggregated, d => d.count) || 1]);
+
+      const bars = g.selectAll('rect').data(aggregated, d => d.Education);
+
+      bars.enter().append('rect')
+        .merge(bars)
+        .attr('x', d => x(d.WorkLifeBalance))
+        .attr('y', d => y(d.count))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.count))
+        .attr('fill', 'steelblue');
+      bars.exit().remove();
+
+
+      // Add count labels above each bar
+      const labels = g.selectAll('.bar-label').data(aggregated, d => d.WorkLifeBalance);
+      labels.enter()
+        .append('text')
+        .attr('class', 'bar-label')
+        .merge(labels)
+        .attr('x', d => x(d.WorkLifeBalance) + x.bandwidth() / 2)
+        .attr('y', d => y(d.count) - 5) // 5 pixels above the top of the bar
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#222')
+        .attr('font-size', '12px')
+        .text(d => d.count);
+      labels.exit().remove();
+
+
+
+      const maxEntry = aggregated.reduce((a, b) => b.count > a.count ? b : a, aggregated[0]);
+      const maxX = x(maxEntry.WorkLifeBalance);// + x.bandwidth() / 2; // center of bar
+      const maxY = y(maxEntry.count) - 5
+
+      console.log(maxEntry)
+      console.log(maxX)
+      console.log(maxY)
+
+      const annotations = [
+        {
+          note: {
+            label: `Highest attrition in this job satisfaction category`,
+            wrap: 400
+          },
+          x: maxX,
+          y: maxY,
+          dx: 0,   // horizontal offset for annotation note
+          dy: -3   // vertical offset for annotation note
+        }
+      ];
+
+      g.selectAll('.annotation-group').remove();
+      const makeAnn = d3.annotation()
+        .type(d3.annotationLabel)
+        .notePadding(0)
+        //        .annotations([{ note:{title:'Highest',label:"Highest attrition rate for this education level"}, x:x(maxEntry.Education)+x.bandwidth()/2, y:y(maxEntry.count), dy:-30, dx:20, type:d3.annotationCalloutCircle, subject:{radius:10}}]);
+        .annotations(annotations)
+
+      g.append('g').attr('class', 'annotation-group').call(makeAnn);
+
+      xAxis.call(d3.axisBottom(x));
+      yAxis.call(d3.axisLeft(y));
+
+      d3.select('#commentText').text('The highest attrition should have come from least job satisfaction. The data needs to be analyzed by additional dimensions to identify root cause of attribution ');
+
+
+    }
+
+
+    function scene3() {
+
+
+      // read filter values (if filters exist)
+      let data = empData
+      // Aggregate data by Education and count attrition points
+      let  aggregated = d3.rollups(data, v => v.length, d => d.Department).map(([Department, count]) => ({ Department, count }));
+      console.log(aggregated)
+
+
+
+      const svg = d3.select("#graph").append("svg")
+        .attr("width", widthsvg)
+        .attr("height", heightsvg);
+
+      const margin = { top: 40, right: 20, bottom: 40, left: 80 },
+        width = +svg.attr('width') - margin.left - margin.right, height = +svg.attr('height') - margin.top - margin.bottom;
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+      const x = d3.scaleBand().range([0, width]).padding(0.2);
+      const y = d3.scaleLinear().range([height, 0]);
+      const xAxis = g.append('g').attr('transform', `translate(0,${height})`);
+      const yAxis = g.append('g');
+
+      x.domain(aggregated.map(d => d.Department));
+      y.domain([0, d3.max(aggregated, d => d.count) || 1]);
+
+      const bars = g.selectAll('rect').data(aggregated, d => d.Department);
+
+      bars.enter().append('rect')
+        .merge(bars)
+        .attr('x', d => x(d.Department))
+        .attr('y', d => y(d.count))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.count))
+        .attr('fill', 'steelblue');
+      bars.exit().remove();
+
+
+      // Add count labels above each bar
+      const labels = g.selectAll('.bar-label').data(aggregated, d => d.Department);
+      labels.enter()
+        .append('text')
+        .attr('class', 'bar-label')
+        .merge(labels)
+        .attr('x', d => x(d.Department) + x.bandwidth() / 2)
+        .attr('y', d => y(d.count) - 5) // 5 pixels above the top of the bar
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#222')
+        .attr('font-size', '12px')
+        .text(d => d.count);
+      labels.exit().remove();
+
+
+
+      const maxEntry = aggregated.reduce((a, b) => b.count > a.count ? b : a, aggregated[0]);
+      const maxX = x(maxEntry.Department);// + x.bandwidth() / 2; // center of bar
+      const maxY = y(maxEntry.count) - 5
+
+      console.log(maxEntry)
+      console.log(maxX)
+      console.log(maxY)
+
+      const annotations = [
+        {
+          note: {
+            label: `Highest attrition in this Department`,
+            wrap: 400
+          },
+          x: maxX,
+          y: maxY,
+          dx: 0,   // horizontal offset for annotation note
+          dy: -3   // vertical offset for annotation note
+        }
+      ];
+
+      g.selectAll('.annotation-group').remove();
+      const makeAnn = d3.annotation()
+        .type(d3.annotationLabel)
+        .notePadding(0)
+        //        .annotations([{ note:{title:'Highest',label:"Highest attrition rate for this education level"}, x:x(maxEntry.Education)+x.bandwidth()/2, y:y(maxEntry.count), dy:-30, dx:20, type:d3.annotationCalloutCircle, subject:{radius:10}}]);
+        .annotations(annotations)
+
+      g.append('g').attr('class', 'annotation-group').call(makeAnn);
+
+      xAxis.call(d3.axisBottom(x));
+      yAxis.call(d3.axisLeft(y));
+
+      d3.select('#commentText').text('This metric shows the department that is losing most employees');      
+
+    }
+
+
+    function updateFilters() {
+      document.getElementById('expValue').textContent = document.getElementById('expSlider').value;
+      draw();
+    }    
+  </script>
+</body>
+
+</html>
