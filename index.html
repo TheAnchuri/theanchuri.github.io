@@ -136,7 +136,6 @@
 
       initGraph()
       d3.csv("AttritionData.csv").then(function (rawData) {
-        //rawData.forEach(d => { d.jobSatisfaction = +d.JobSatisfaction; d.Age = +d.Age; d.EmployeeCount = +d.EmployeeCount; d.attrition = d.Attrition === 'true'; });
 
         empData = rawData;
         console.log(empData)
@@ -162,8 +161,6 @@
 
 
       d3.csv("AttritionData.csv").then(function (rawData) {
-        //rawData.forEach(d => { d.jobSatisfaction = +d.JobSatisfaction; d.Age = +d.Age; d.EmployeeCount = +d.EmployeeCount; d.attrition = d.Attrition === 'true'; });
-
         empData = rawData;
         console.log(empData)
 
@@ -263,7 +260,7 @@
         .attr('class', 'bar-label')
         .merge(labels)
         .attr('x', d => x(d.Education) + x.bandwidth() / 2)
-        .attr('y', d => y(d.count) - 5) // 5 pixels above the top of the bar
+        .attr('y', d => y(d.count) - 5) 
         .attr('text-anchor', 'middle')
         .attr('fill', '#222')
         .attr('font-size', '12px')
@@ -273,7 +270,7 @@
 
 
       const maxEntry = aggregated.reduce((a, b) => b.count > a.count ? b : a, aggregated[0]);
-      const maxX = x(maxEntry.Education);// + x.bandwidth() / 2; // center of bar
+      const maxX = x(maxEntry.Education);
       const maxY = y(maxEntry.count) - 5
 
       console.log(maxEntry)
@@ -288,8 +285,8 @@
           },
           x: maxX,
           y: maxY,
-          dx: 0,   // horizontal offset for annotation note
-          dy: -3   // vertical offset for annotation note
+          dx: 0,   
+          dy: -3   
         }
       ];
 
@@ -297,7 +294,6 @@
       const makeAnn = d3.annotation()
         .type(d3.annotationLabel)
         .notePadding(0)
-        //        .annotations([{ note:{title:'Highest',label:"Highest attrition rate for this education level"}, x:x(maxEntry.Education)+x.bandwidth()/2, y:y(maxEntry.count), dy:-30, dx:20, type:d3.annotationCalloutCircle, subject:{radius:10}}]);
         .annotations(annotations)
 
       g.append('g').attr('class', 'annotation-group').call(makeAnn);
@@ -313,9 +309,9 @@
 
 
     function scene2() {
-      // read filter values (if filters exist)
+
       let data = empData
-      // Aggregate data by Education and count attrition points
+
       let aggregated = d3.rollups(data, v => v.length, d => d.WorkLifeBalance).map(([WorkLifeBalance, count]) => ({ WorkLifeBalance, count }));
       console.log(aggregated)
 
@@ -363,7 +359,7 @@
         .attr('class', 'bar-label')
         .merge(labels)
         .attr('x', d => x(d.WorkLifeBalance) + x.bandwidth() / 2)
-        .attr('y', d => y(d.count) - 5) // 5 pixels above the top of the bar
+        .attr('y', d => y(d.count) - 5) 
         .attr('text-anchor', 'middle')
         .attr('fill', '#222')
         .attr('font-size', '12px')
@@ -373,7 +369,7 @@
 
 
       const maxEntry = aggregated.reduce((a, b) => b.count > a.count ? b : a, aggregated[0]);
-      const maxX = x(maxEntry.WorkLifeBalance);// + x.bandwidth() / 2; // center of bar
+      const maxX = x(maxEntry.WorkLifeBalance);
       const maxY = y(maxEntry.count) - 5
 
       console.log(maxEntry)
@@ -388,8 +384,8 @@
           },
           x: maxX,
           y: maxY,
-          dx: 0,   // horizontal offset for annotation note
-          dy: -3   // vertical offset for annotation note
+          dx: 0,   
+          dy: -3   
         }
       ];
 
@@ -397,7 +393,6 @@
       const makeAnn = d3.annotation()
         .type(d3.annotationLabel)
         .notePadding(0)
-        //        .annotations([{ note:{title:'Highest',label:"Highest attrition rate for this education level"}, x:x(maxEntry.Education)+x.bandwidth()/2, y:y(maxEntry.count), dy:-30, dx:20, type:d3.annotationCalloutCircle, subject:{radius:10}}]);
         .annotations(annotations)
 
       g.append('g').attr('class', 'annotation-group').call(makeAnn);
@@ -414,7 +409,7 @@
     function scene3() {
 
 
-      // read filter values (if filters exist)
+
       let data = empData
       // Aggregate data by Education and count attrition points
       let aggregated = d3.rollups(data, v => v.length, d => d.Department).map(([Department, count]) => ({ Department, count }));
@@ -457,7 +452,7 @@
         .attr('class', 'bar-label')
         .merge(labels)
         .attr('x', d => x(d.Department) + x.bandwidth() / 2)
-        .attr('y', d => y(d.count) - 5) // 5 pixels above the top of the bar
+        .attr('y', d => y(d.count) - 5) 
         .attr('text-anchor', 'middle')
         .attr('fill', '#222')
         .attr('font-size', '12px')
@@ -467,7 +462,7 @@
 
 
       const maxEntry = aggregated.reduce((a, b) => b.count > a.count ? b : a, aggregated[0]);
-      const maxX = x(maxEntry.Department);// + x.bandwidth() / 2; // center of bar
+      const maxX = x(maxEntry.Department);
       const maxY = y(maxEntry.count) - 5
 
       console.log(maxEntry)
@@ -482,8 +477,8 @@
           },
           x: maxX,
           y: maxY,
-          dx: 0,   // horizontal offset for annotation note
-          dy: -3   // vertical offset for annotation note
+          dx: 0,   
+          dy: -3   
         }
       ];
 
@@ -491,7 +486,6 @@
       const makeAnn = d3.annotation()
         .type(d3.annotationLabel)
         .notePadding(0)
-        //        .annotations([{ note:{title:'Highest',label:"Highest attrition rate for this education level"}, x:x(maxEntry.Education)+x.bandwidth()/2, y:y(maxEntry.count), dy:-30, dx:20, type:d3.annotationCalloutCircle, subject:{radius:10}}]);
         .annotations(annotations)
 
       g.append('g').attr('class', 'annotation-group').call(makeAnn);
